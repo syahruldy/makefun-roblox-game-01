@@ -8,6 +8,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GameConfig"))
 local PlayerController = require(script.Parent.PlayerController)
@@ -68,6 +69,27 @@ arena.BorderColor3 = Color3.fromRGB(20, 20, 28)
 arena.BorderSizePixel = 3
 arena.ClipsDescendants = true
 arena.Parent = gui
+
+-- The arena is a fixed 640 x 480 logic space; scale it to the viewport so
+-- the game fills the screen instead of floating in a corner of it. The
+-- scale is render-only: every position, speed and hit test still uses
+-- arena pixels, and the HUD lives outside the arena, so nothing moves.
+local arenaScale = Instance.new("UIScale")
+arenaScale.Parent = arena
+local function updateArenaScale()
+	local camera = Workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	local viewport = camera.ViewportSize
+	local scale = math.min(viewport.X / 760, viewport.Y / 580)
+	arenaScale.Scale = math.clamp(scale, 1, 1.75)
+end
+local camera = Workspace.CurrentCamera
+if camera ~= nil then
+	updateArenaScale()
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateArenaScale)
+end
 
 local context = {
 	gui = gui,

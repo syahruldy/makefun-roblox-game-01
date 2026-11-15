@@ -19,6 +19,7 @@ local zoneLabel = nil
 local timerLabel = nil
 local dashBar = nil
 local dashFill = nil
+local dashLabel = nil
 local goalLabel = nil
 
 local startScreen = nil
@@ -134,7 +135,7 @@ function HudController.buildHud()
 	fillCorner.CornerRadius = UDim.new(0.5, 0)
 	fillCorner.Parent = dashFill
 	dashFill.Parent = dashBar
-	local dashLabel = makeLabel(gui, "DashLabel", UDim2.new(0, 90, 0, 68), UDim2.fromOffset(150, 16), 13)
+	dashLabel = makeLabel(gui, "DashLabel", UDim2.new(0, 90, 0, 68), UDim2.fromOffset(150, 16), 13)
 	dashLabel.Text = "DASH (SPACE)"
 	dashLabel.TextXAlignment = Enum.TextXAlignment.Left
 	dashLabel.Visible = false
@@ -331,12 +332,14 @@ end
 function HudController.showHud()
 	hudBar.Visible = true
 	dashBar.Visible = true
+	dashLabel.Visible = true
 	goalLabel.Visible = true
 end
 
 function HudController.hideHud()
 	hudBar.Visible = false
 	dashBar.Visible = false
+	dashLabel.Visible = false
 	goalLabel.Visible = false
 end
 
