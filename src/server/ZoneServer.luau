@@ -51,13 +51,13 @@ end
 -- margin from the edges, each with the zone's ore value and hit points.
 -- Crystal ids are unique across the whole run so a mined crystal can never
 -- be claimed twice.
-function ZoneServer.generateCrystalBatch(zoneIndex, firstId)
+function ZoneServer.generateCrystalBatch(zoneIndex, firstId, count)
 	local zone = GameConfig.ZONES[zoneIndex]
 	local batch = {}
 	local margin = 40
 	local width = GameConfig.ARENA_WIDTH - margin * 2
 	local height = GameConfig.ARENA_HEIGHT - margin * 2
-	for i = 1, GameConfig.CRYSTALS_PER_ZONE do
+	for i = 1, count or GameConfig.CRYSTALS_PER_ZONE do
 		batch[i] = {
 			id = firstId + i - 1,
 			x = margin + math.random(0, width),

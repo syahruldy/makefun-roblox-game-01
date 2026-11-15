@@ -98,8 +98,8 @@ local function computeScore()
 		+ state.lives * GameConfig.SCORE_PER_LIFE_LEFT
 end
 
-local function spawnCrystalBatch(zoneIndex)
-	local batch = ZoneServer.generateCrystalBatch(zoneIndex, nextCrystalId)
+local function spawnCrystalBatch(zoneIndex, count)
+	local batch = ZoneServer.generateCrystalBatch(zoneIndex, nextCrystalId, count)
 	nextCrystalId = nextCrystalId + #batch
 	for _, crystal in ipairs(batch) do
 		crystals[crystal.id] = crystal
@@ -117,21 +117,24 @@ end
 
 -- Starts a zone: fresh crystals, a reset shard counter, and the Forge
 -- between zones (never before the first zone, always after clearing one).
+-- ZoneStarted goes out BEFORE the crystals: the client's ZoneStarted
+-- handler clears the arena, so a batch dealt before it would be wiped on
+-- arrival and the zone would open empty.
 local function startZone(zoneIndex, openForge)
 	state.zoneIndex = zoneIndex
 	state.shardsInZone = 0
 	state.portalOpen = false
 	crystals = {}
-	spawnCrystalBatch(zoneIndex)
-	if ZoneServer.isFinalZone(zoneIndex) then
-		spawnCoreCrystal()
-	end
 	if openForge then
 		state.phase = "forge"
 		sendEvent("ZoneStarted", { zoneIndex = zoneIndex, openForge = true })
 	else
 		state.phase = "playing"
 		sendEvent("ZoneStarted", { zoneIndex = zoneIndex, openForge = false })
+	end
+	spawnCrystalBatch(zoneIndex)
+	if ZoneServer.isFinalZone(zoneIndex) then
+		spawnCoreCrystal()
 	end
 	broadcastState()
 end
@@ -196,7 +199,7 @@ local function onMineCrystal(crystalId)
 			count = count + 1
 		end
 		if count < GameConfig.CRYSTALS_PER_ZONE then
-			spawnCrystalBatch(zoneAtMineTime)
+			spawnCrystalBatch(zoneAtMineTime, 1)
 		end
 	end)
 end
