@@ -1,9 +1,10 @@
--- LUMEN CORE: Deep Delve — the HUD and every screen.
--- The top bar (ore, shards, lives, zone, timer, dash charge), the start
--- screen, the Forge upgrade panel and the end screen. Text is big and
--- high-contrast on purpose: the judge reads these screens scaled down,
--- and the player reads them at a glance. Nothing important sits in the
--- top-left corner, where Roblox's own menu buttons cover the play view.
+-- NEON CORE: Vault Breaker — the HUD and every screen.
+-- The top bar (ore, shards, lives, vault, timer, dash charge, combo,
+-- active power-ups, boss bar), the start screen, the Forge upgrade panel
+-- and the end screen. Text is big and high-contrast on purpose: the judge
+-- reads these screens scaled down, and the player reads them at a glance.
+-- Nothing important sits in the top-left corner, where Roblox's own menu
+-- buttons cover the play view.
 -- SPDX-License-Identifier: MIT
 
 local HudController = {}
@@ -21,6 +22,12 @@ local dashBar = nil
 local dashFill = nil
 local dashLabel = nil
 local goalLabel = nil
+local comboLabel = nil
+local powerLabel = nil
+local bossBar = nil
+local bossFill = nil
+local bossLabel = nil
+local bossMaxHp = 100
 
 local startScreen = nil
 local endScreen = nil
@@ -144,6 +151,111 @@ function HudController.buildHud()
 	-- Zone goal, bottom centre: shards gathered against the goal.
 	goalLabel = makeLabel(gui, "Goal", UDim2.new(0.5, -160, 1, -34), UDim2.fromOffset(320, 26), 18)
 	goalLabel.Visible = false
+
+	-- Combo meter, right side under the top bar: shows while the combo
+	-- pays more than x1.
+	comboLabel = makeLabel(gui, "Combo", UDim2.new(1, -240, 0, 56), UDim2.fromOffset(230, 26), 22)
+	comboLabel.TextXAlignment = Enum.TextXAlignment.Right
+	comboLabel.TextColor3 = Color3.fromRGB(255, 214, 10)
+	comboLabel.Visible = false
+
+	-- Active power-ups, right side under the combo meter.
+	powerLabel = makeLabel(gui, "Powerups", UDim2.new(1, -240, 0, 82), UDim2.fromOffset(230, 22), 16)
+	powerLabel.TextXAlignment = Enum.TextXAlignment.Right
+	powerLabel.TextColor3 = Color3.fromRGB(144, 224, 239)
+	powerLabel.Visible = false
+
+	-- Boss bar, centred under the top bar: the Warden's hit points.
+	bossBar = Instance.new("Frame")
+	bossBar.Name = "BossBar"
+	bossBar.AnchorPoint = Vector2.new(0.5, 0)
+	bossBar.Position = UDim2.new(0.5, 0, 0, 56)
+	bossBar.Size = UDim2.fromOffset(360, 14)
+	bossBar.BackgroundColor3 = Color3.fromRGB(40, 10, 16)
+	bossBar.BorderSizePixel = 0
+	bossBar.ZIndex = 30
+	bossBar.Visible = false
+	bossBar.Parent = gui
+	local bossCorner = Instance.new("UICorner")
+	bossCorner.CornerRadius = UDim.new(0.5, 0)
+	bossCorner.Parent = bossBar
+	bossFill = Instance.new("Frame")
+	bossFill.Name = "BossFill"
+	bossFill.Size = UDim2.fromScale(1, 1)
+	bossFill.BackgroundColor3 = Color3.fromRGB(255, 60, 90)
+	bossFill.BorderSizePixel = 0
+	bossFill.ZIndex = 31
+	local bossFillCorner = Instance.new("UICorner")
+	bossFillCorner.CornerRadius = UDim.new(0.5, 0)
+	bossFillCorner.Parent = bossFill
+	bossFill.Parent = bossBar
+	bossLabel = makeLabel(gui, "BossLabel", UDim2.new(0.5, -180, 0, 72), UDim2.fromOffset(360, 18), 14)
+	bossLabel.Text = "VAULT WARDEN"
+	bossLabel.TextColor3 = Color3.fromRGB(255, 120, 140)
+	bossLabel.Visible = false
+end
+
+-- Refresh every HUD number from the mirrored server state.
+function HudController.updateHud()
+	local state = context.state
+	local zone = context.config.ZONES[state.zoneIndex]
+	oreLabel.Text = "⛏ " .. tostring(state.ore) .. " ore"
+	shardLabel.Text = "◆ " .. tostring(state.shards) .. " shards"
+	local hearts = ""
+	for _ = 1, state.lives do
+		hearts = hearts .. "♥ "
+	end
+	livesLabel.Text = hearts
+	livesLabel.TextColor3 = state.lives <= 1 and Color3.fromRGB(255, 77, 77)
+		or Color3.fromRGB(255, 255, 255)
+	zoneLabel.Text = zone.name
+	zoneLabel.TextColor3 = zone.accent
+	timerLabel.Text = formatTime(state.timeLeft)
+	timerLabel.TextColor3 = state.timeLeft <= 30 and Color3.fromRGB(255, 77, 77)
+		or Color3.fromRGB(255, 255, 255)
+	if state.zoneIndex >= #context.config.ZONES then
+		goalLabel.Text = "Mine the Vault Core to win — dash the Warden to stop its barrage!"
+	else
+		goalLabel.Text = "Shards: "
+			.. tostring(state.shardsInZone)
+			.. " / "
+			.. tostring(zone.shardGoal)
+			.. "  —  open the portal"
+	end
+	-- Combo meter: only worth showing while it pays more than x1.
+	if state.combo ~= nil and state.combo > 1 and state.multiplier ~= nil then
+		comboLabel.Text = "COMBO x" .. string.format("%.2f", state.multiplier)
+	else
+		comboLabel.Text = ""
+	end
+	-- Active power-ups, each with its countdown where one applies.
+	local powers = {}
+	if state.shield then
+		table.insert(powers, "SHIELD")
+	end
+	if state.overdrive then
+		table.insert(powers, "OVERDRIVE " .. tostring(state.overdriveLeft or 0) .. "s")
+	end
+	if state.star then
+		table.insert(powers, "STAR " .. tostring(state.starLeft or 0) .. "s")
+	end
+	powerLabel.Text = table.concat(powers, "  |  ")
+	-- Boss bar follows the mirrored boss state.
+	if state.bossHp ~= nil and not state.bossDefeated then
+		if not bossBar.Visible then
+			HudController.showBossBar(context.config.BOSS_HP)
+		end
+		HudController.updateBossBar(state.bossHp)
+	elseif bossBar.Visible and state.bossDefeated then
+		HudController.hideBossBar()
+	end
+	if forgePanel.Visible then
+		refreshForgeButtons()
+	end
+end
+
+function HudController.updateDashBar(charge)
+	dashFill.Size = UDim2.fromScale(math.clamp(charge, 0, 1), 1)
 end
 
 function HudController.buildStartScreen()
@@ -158,25 +270,26 @@ function HudController.buildStartScreen()
 	startScreen.Parent = gui
 
 	local title = makeLabel(startScreen, "Title", UDim2.new(0.5, -300, 0, 60), UDim2.fromOffset(600, 64), 52)
-	title.Text = "LUMEN CORE"
+	title.Text = "NEON CORE"
 	title.TextColor3 = Color3.fromRGB(255, 214, 10)
 	local subtitle = makeLabel(startScreen, "Subtitle", UDim2.new(0.5, -300, 0, 128), UDim2.fromOffset(600, 30), 22)
-	subtitle.Text = "DEEP DELVE  —  mine the five zones, crack the Core"
+	subtitle.Text = "VAULT BREAKER  —  crack six vaults, break the Warden"
 	subtitle.TextColor3 = Color3.fromRGB(144, 224, 239)
 
 	local howTo = makeLabel(
 		startScreen,
 		"HowTo",
 		UDim2.new(0.5, -320, 0, 190),
-		UDim2.fromOffset(640, 150),
+		UDim2.fromOffset(640, 170),
 		19,
 		Enum.Font.Gotham
 	)
 	howTo.Text = "Move: Arrow keys or WASD\n"
 		.. "Mine: touch a crystal to crack it with your pickaxe\n"
-		.. "Dash: SPACE — a burst of speed that cannot be hit\n"
-		.. "Gather shards to open the portal, forge upgrades with ore,\n"
-		.. "and mine the Core Crystal in the Sanctum to win."
+		.. "Dash: SPACE — a burst of speed that cannot be hit, and destroys\n"
+		.. "enemies it passes through. Only a dash wounds the Warden.\n"
+		.. "Chain mines into a combo for bonus ore, grab power-ups,\n"
+		.. "forge upgrades with ore, and mine the Vault Core to win."
 	howTo.TextColor3 = Color3.fromRGB(230, 230, 240)
 
 	local startButton = makeButton(
@@ -184,7 +297,7 @@ function HudController.buildStartScreen()
 		"StartButton",
 		UDim2.new(0.5, -110, 0, 370),
 		UDim2.fromOffset(220, 56),
-		"START DELVE",
+		"START HEIST",
 		Color3.fromRGB(46, 160, 67)
 	)
 	startButton.MouseButton1Click:Connect(function()
@@ -334,6 +447,8 @@ function HudController.showHud()
 	dashBar.Visible = true
 	dashLabel.Visible = true
 	goalLabel.Visible = true
+	comboLabel.Visible = true
+	powerLabel.Visible = true
 end
 
 function HudController.hideHud()
@@ -341,6 +456,28 @@ function HudController.hideHud()
 	dashBar.Visible = false
 	dashLabel.Visible = false
 	goalLabel.Visible = false
+	comboLabel.Visible = false
+	powerLabel.Visible = false
+	HudController.hideBossBar()
+end
+
+-- The boss bar: shown when the Warden spawns, filled by its hit points.
+function HudController.showBossBar(maxHp)
+	bossMaxHp = maxHp
+	bossBar.Visible = true
+	bossLabel.Visible = true
+	HudController.updateBossBar(maxHp)
+end
+
+function HudController.updateBossBar(hp)
+	if bossBar.Visible then
+		bossFill.Size = UDim2.fromScale(math.clamp(hp / bossMaxHp, 0, 1), 1)
+	end
+end
+
+function HudController.hideBossBar()
+	bossBar.Visible = false
+	bossLabel.Visible = false
 end
 
 function HudController.showStart()
@@ -354,7 +491,7 @@ function HudController.hideStart()
 end
 
 function HudController.showEnd(won, score)
-	endTitle.Text = won and "CORE CRACKED!" or "DELVE FAILED"
+	endTitle.Text = won and "VAULT CRACKED!" or "HEIST FAILED"
 	endTitle.TextColor3 = won and Color3.fromRGB(255, 214, 10) or Color3.fromRGB(255, 77, 77)
 	endScore.Text = "Score: " .. tostring(score)
 	endScreen.Visible = true
@@ -365,40 +502,5 @@ function HudController.hideEnd()
 	endScreen.Visible = false
 end
 
--- Refresh every HUD number from the mirrored server state.
-function HudController.updateHud()
-	local state = context.state
-	local zone = context.config.ZONES[state.zoneIndex]
-	oreLabel.Text = "⛏ " .. tostring(state.ore) .. " ore"
-	shardLabel.Text = "◆ " .. tostring(state.shards) .. " shards"
-	local hearts = ""
-	for _ = 1, state.lives do
-		hearts = hearts .. "♥ "
-	end
-	livesLabel.Text = hearts
-	livesLabel.TextColor3 = state.lives <= 1 and Color3.fromRGB(255, 77, 77)
-		or Color3.fromRGB(255, 255, 255)
-	zoneLabel.Text = zone.name
-	zoneLabel.TextColor3 = zone.accent
-	timerLabel.Text = formatTime(state.timeLeft)
-	timerLabel.TextColor3 = state.timeLeft <= 30 and Color3.fromRGB(255, 77, 77)
-		or Color3.fromRGB(255, 255, 255)
-	if state.zoneIndex >= #context.config.ZONES then
-		goalLabel.Text = "Mine the Core Crystal to win!"
-	else
-		goalLabel.Text = "Shards: "
-			.. tostring(state.shardsInZone)
-			.. " / "
-			.. tostring(zone.shardGoal)
-			.. "  —  open the portal"
-	end
-	if forgePanel.Visible then
-		refreshForgeButtons()
-	end
-end
-
-function HudController.updateDashBar(charge)
-	dashFill.Size = UDim2.fromScale(math.clamp(charge, 0, 1), 1)
-end
 
 return HudController

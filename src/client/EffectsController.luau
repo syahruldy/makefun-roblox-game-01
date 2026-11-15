@@ -1,7 +1,8 @@
--- LUMEN CORE: Deep Delve — one-shot visual feedback.
--- Screen shake, flashes and floating text. Every player action gets an
--- answer on screen within a frame: mining pops ore text, a hit shakes the
--- arena, a zone change flashes the new palette.
+-- NEON CORE: Vault Breaker — one-shot visual feedback.
+-- Screen shake, flashes, floating text and particle bursts. Every player
+-- action gets an answer on screen within a frame: mining pops ore text
+-- and a burst, a hit shakes the arena, a vault change flashes the new
+-- palette.
 -- SPDX-License-Identifier: MIT
 
 local TweenService = game:GetService("TweenService")
@@ -85,6 +86,44 @@ function EffectsController.floatingText(text, position, color)
 		label:Destroy()
 	end)
 	tween:Play()
+end
+
+-- A burst of small shards flying out from a point and fading: the pop
+-- when a crystal breaks or a dash kill lands.
+function EffectsController.burst(position, color)
+	if arena == nil then
+		return
+	end
+	for i = 1, 6 do
+		local angle = (i - 1) * (math.pi * 2 / 6) + math.random() * 0.5
+		local distance = 26 + math.random(0, 18)
+		local shard = Instance.new("Frame")
+		shard.Name = "BurstShard"
+		shard.AnchorPoint = Vector2.new(0.5, 0.5)
+		shard.Position = UDim2.fromOffset(position.x, position.y)
+		shard.Size = UDim2.fromOffset(8, 8)
+		shard.BackgroundColor3 = color
+		shard.BorderSizePixel = 0
+		shard.Rotation = 45
+		shard.ZIndex = 60
+		shard.Parent = arena
+		local tween = TweenService:Create(
+			shard,
+			TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{
+				Position = UDim2.fromOffset(
+					position.x + math.cos(angle) * distance,
+					position.y + math.sin(angle) * distance
+				),
+				BackgroundTransparency = 1,
+				Size = UDim2.fromOffset(3, 3),
+			}
+		)
+		tween.Completed:Connect(function()
+			shard:Destroy()
+		end)
+		tween:Play()
+	end
 end
 
 -- A quick scale pulse on a frame, for pickups and button presses.

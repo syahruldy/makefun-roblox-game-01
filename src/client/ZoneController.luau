@@ -1,7 +1,7 @@
--- LUMEN CORE: Deep Delve — zone presentation and the portal.
--- Re-skins the arena in each zone's palette, shows the zone banner, and
--- owns the portal: the glowing gate that opens once the zone's shard goal
--- is met. Walking into it carries the player to the next zone.
+-- NEON CORE: Vault Breaker — vault presentation and the portal.
+-- Re-skins the arena in each vault's palette, shows the vault banner, and
+-- owns the portal: the glowing gate that opens once the vault's shard goal
+-- is met. Walking into it carries the player to the next vault.
 -- SPDX-License-Identifier: MIT
 
 local TweenService = game:GetService("TweenService")
@@ -55,7 +55,7 @@ function ZoneController.init(ctx, backgroundFrame)
 	banner.Parent = context.arena
 end
 
--- Paint the cave in the zone's palette and announce it.
+-- Paint the vault in the zone's palette and announce it.
 function ZoneController.applyZone(zoneIndex)
 	local zone = context.config.ZONES[zoneIndex]
 	background.BackgroundColor3 = zone.background

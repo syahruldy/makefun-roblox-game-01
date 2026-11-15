@@ -1,4 +1,4 @@
--- LUMEN CORE: Deep Delve — the client.
+-- NEON CORE: Vault Breaker — the client.
 -- Builds the screen, wires the controllers, mirrors the server's state and
 -- runs the frame loop. The server owns every number; this script owns
 -- every pixel. Input is read with IsKeyDown each frame (never InputBegan
@@ -14,6 +14,7 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local PlayerController = require(script.Parent.PlayerController)
 local MiningController = require(script.Parent.MiningController)
 local EnemyController = require(script.Parent.EnemyController)
+local PowerupController = require(script.Parent.PowerupController)
 local ZoneController = require(script.Parent.ZoneController)
 local HudController = require(script.Parent.HudController)
 local EffectsController = require(script.Parent.EffectsController)
@@ -42,6 +43,16 @@ local state = {
 	coreSpawned = false,
 	won = false,
 	score = 0,
+	combo = 0,
+	multiplier = 1,
+	bonusScore = 0,
+	shield = false,
+	overdrive = false,
+	overdriveLeft = 0,
+	star = false,
+	starLeft = 0,
+	bossHp = nil,
+	bossDefeated = false,
 }
 
 -- The screen: a full-screen GUI, a coloured background and the centred
@@ -103,6 +114,7 @@ EffectsController.init(context)
 PlayerController.init(context)
 MiningController.init(context, EffectsController)
 EnemyController.init(context)
+PowerupController.init(context, EffectsController)
 ZoneController.init(context, background)
 HudController.init(context, EffectsController)
 HudController.showStart()
@@ -144,6 +156,8 @@ local events = {
 	ZoneStarted = function(payload)
 		MiningController.clear()
 		EnemyController.clear()
+		PowerupController.clear()
+		HudController.hideBossBar()
 		ZoneController.applyZone(payload.zoneIndex)
 		PlayerController.reset()
 		if payload.openForge then
@@ -154,9 +168,55 @@ local events = {
 		MiningController.spawnCore(payload)
 		EnemyController.spawnGuardianBarrage(GameConfig.CORE_GUARDIAN_CHASERS)
 		ZoneController.showBanner(
-			"THE CORE GUARDIAN WAKES",
-			"Mine the Core Crystal — and watch your back",
+			"THE VAULT CORE",
+			"Mine the Vault Core — and watch your back",
 			Color3.fromRGB(255, 214, 10)
+		)
+	end,
+	BossSpawned = function(payload)
+		EnemyController.spawnBoss(payload)
+		HudController.showBossBar(payload.maxHp)
+		ZoneController.showBanner(
+			"THE VAULT WARDEN WAKES",
+			"Only a dash wounds it — break it for +500",
+			Color3.fromRGB(255, 60, 90)
+		)
+	end,
+	BossDamaged = function(payload)
+		HudController.updateBossBar(payload.hp)
+	end,
+	BossDefeated = function(payload)
+		EnemyController.removeBoss()
+		HudController.hideBossBar()
+		EffectsController.flash(Color3.fromRGB(255, 214, 10))
+		ZoneController.showBanner(
+			"WARDEN DOWN!",
+			"+" .. tostring(payload.bonus) .. " bonus — the barrage is silenced",
+			Color3.fromRGB(255, 214, 10)
+		)
+	end,
+	PowerupSpawned = function(payload)
+		PowerupController.spawnPowerup(payload)
+	end,
+	PowerupCollected = function(payload)
+		PowerupController.onCollected(payload)
+	end,
+	ShieldBlocked = function(_payload)
+		PlayerController.setInvulnerable(GameConfig.INVULNERABLE_SECONDS)
+		EffectsController.flash(Color3.fromRGB(144, 224, 239))
+		EffectsController.floatingText(
+			"SHIELD BLOCKED!",
+			{ x = 320, y = 200 },
+			Color3.fromRGB(144, 224, 239)
+		)
+	end,
+	EnemyDestroyed = function(payload)
+		local center = PlayerController.getCenter()
+		EffectsController.burst(center, Color3.fromRGB(255, 77, 77))
+		EffectsController.floatingText(
+			"DASH KILL +" .. tostring(payload.bonus),
+			center,
+			Color3.fromRGB(255, 120, 120)
 		)
 	end,
 	UpgradeBought = function(_payload)
@@ -184,7 +244,13 @@ RunService.RenderStepped:Connect(function(dt)
 		PlayerController.update(dt)
 		local playerRect = PlayerController.getRect()
 		MiningController.update(dt, playerRect)
-		EnemyController.update(dt, playerRect, PlayerController.isInvulnerable())
+		EnemyController.update(
+			dt,
+			playerRect,
+			PlayerController.isInvulnerable(),
+			PlayerController.isDashing()
+		)
+		PowerupController.update(dt, playerRect)
 		HudController.updateDashBar(PlayerController.getDashCharge())
 		local portalRect = ZoneController.getPortalRect()
 		if portalRect ~= nil and rectsOverlap(playerRect, portalRect) then

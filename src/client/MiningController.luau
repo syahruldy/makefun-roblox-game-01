@@ -1,9 +1,10 @@
--- LUMEN CORE: Deep Delve — crystals and mining.
+-- NEON CORE: Vault Breaker — crystals and mining.
 -- Renders the crystal batches the server deals, tracks the pickaxe charge
 -- on each crystal the drone touches, and reports a finished mine to the
 -- server by crystal id. The server is what pays out; this module only
 -- draws and measures. A crystal shrinks and flashes as it cracks, so the
--- player can read how close it is to breaking.
+-- player can read how close it is to breaking. Overdrive doubles the
+-- pickaxe while it lasts.
 -- SPDX-License-Identifier: MIT
 
 local MiningController = {}
@@ -69,8 +70,8 @@ function MiningController.spawnCrystals(batch)
 	end
 end
 
--- The Core Crystal: much bigger, gold, pulsing in the middle of the
--- Sanctum. Mining it wins the run.
+-- The Vault Core: much bigger, gold, pulsing in the middle of the Core
+-- Vault. Mining it wins the run.
 function MiningController.spawnCore(coreData)
 	if crystals[coreData.id] ~= nil then
 		return
@@ -106,12 +107,16 @@ local function rectsOverlap(a, b, extra)
 end
 
 -- Each frame: every crystal the drone touches (within magnet reach) takes
--- pickaxe damage. A crystal at full charge is claimed once.
+-- pickaxe damage. A crystal at full charge is claimed once. Overdrive
+-- doubles the damage while the server says it is active.
 function MiningController.update(dt, playerRect)
 	local config = context.config
 	local state = context.state
 	local damage = config.PICKAXE_DAMAGE_PER_SECOND
 		+ state.upgrades.pickaxe * config.PICKAXE_DAMAGE_PER_LEVEL
+	if state.overdrive then
+		damage = damage * 2
+	end
 	local reach = config.MAGNET_RADIUS_PIXELS
 		+ state.upgrades.magnet * config.MAGNET_RADIUS_PER_LEVEL
 
@@ -138,17 +143,19 @@ function MiningController.update(dt, playerRect)
 end
 
 -- The server confirmed the mine: pop the ore text and clear the frame.
+-- A combo above one shows the multiplier the ore was paid at.
 function MiningController.onCrystalMined(payload)
 	local entry = crystals[payload.id]
 	if entry == nil then
 		return
 	end
 	local center = { x = entry.data.x, y = entry.data.y }
-	effects.floatingText(
-		"+" .. tostring(payload.ore) .. " ore",
-		center,
-		Color3.fromRGB(255, 214, 10)
-	)
+	local text = "+" .. tostring(payload.ore) .. " ore"
+	if payload.multiplier ~= nil and payload.multiplier > 1 then
+		text = text .. "  x" .. string.format("%.2f", payload.multiplier)
+	end
+	effects.floatingText(text, center, Color3.fromRGB(255, 214, 10))
+	effects.burst(center, Color3.fromRGB(255, 214, 10))
 	if payload.isCore == true then
 		effects.flash(Color3.fromRGB(255, 214, 10))
 	end

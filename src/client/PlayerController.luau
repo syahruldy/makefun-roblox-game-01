@@ -1,8 +1,9 @@
--- LUMEN CORE: Deep Delve — the player drone.
+-- NEON CORE: Vault Breaker — the player drone.
 -- Reads the keyboard every frame (arrow keys or WASD to move, Space or
 -- Shift to phase dash), clamps the drone inside the arena, and owns the
 -- dash cooldown and the invulnerability blink. Movement is local and
 -- immediate: the server never positions the drone, it only scores it.
+-- Star power makes the drone faster and untouchable while it lasts.
 -- SPDX-License-Identifier: MIT
 
 local UserInputService = game:GetService("UserInputService")
@@ -92,7 +93,9 @@ function PlayerController.isDashing()
 end
 
 function PlayerController.isInvulnerable()
-	return os.clock() < invulnerableUntil or PlayerController.isDashing()
+	return os.clock() < invulnerableUntil
+		or PlayerController.isDashing()
+		or context.state.star == true
 end
 
 function PlayerController.setInvulnerable(seconds)
@@ -178,6 +181,9 @@ function PlayerController.update(dt)
 	end
 
 	local speed = config.PLAYER_SPEED
+	if context.state.star then
+		speed = speed * config.STAR_SPEED_MULTIPLIER
+	end
 	if PlayerController.isDashing() then
 		x = x + dashDx * speed * config.DASH_MULTIPLIER * dt
 		y = y + dashDy * speed * config.DASH_MULTIPLIER * dt
