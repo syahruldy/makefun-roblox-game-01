@@ -1,7 +1,7 @@
-// LUMEN CORE: Deep Delve — a 2D arcade miner for Roblox (Node 22, standard
-// library only): the game is this directory's Rojo project, built into
-// game.rbxl with `rojo build default.project.json --output game.rbxl`, and
-// the program hands it in. It copies game.rbxl, src/, screenshots/ and
+// NEON CORE: Vault Breaker — a 2D arcade miner-heist for Roblox (Node 22,
+// standard library only): the game is this directory's Rojo project, built
+// into game.rbxl with `rojo build default.project.json --output game.rbxl`,
+// and the program hands it in. It copies game.rbxl, src/, screenshots/ and
 // PLAY.json from beside this file to /output and writes /output/dossier.json,
 // the summary the judge reads, with the vendored make.fun library.
 //

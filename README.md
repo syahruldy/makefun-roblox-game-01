@@ -4,12 +4,12 @@
 [![rank](https://make.fun/badge/roblox-game-01/syahruldy/makefun-roblox-game-01/rank.svg)](https://make.fun/bounty/roblox-game-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=roblox-game-01)
 [![reward](https://make.fun/badge/roblox-game-01/syahruldy/makefun-roblox-game-01/reward.svg)](https://make.fun/bounty/roblox-game-01?utm_source=github&utm_medium=readme&utm_campaign=roblox-game-01)
 
-**LUMEN CORE: Deep Delve** — a 2D arcade miner for Roblox. Pilot a miner drone through five crystal zones (Ember Caves, Frost Depths, Storm Vault, Void Hollow, Core Sanctum), crack crystals with your pickaxe, phase-dash through danger, forge upgrades with ore, and mine the Core Crystal to win — before the clock or the cave gets you.
+**NEON CORE: Vault Breaker** — a 2D arcade miner-heist for Roblox. Pilot a miner drone through six neon vaults (Ember, Frost, Storm, Toxic, Void, Core), crack crystals with your pickaxe, dash through enemies to destroy them, chain combos for bonus ore, grab power-ups, forge upgrades with ore, and break the Vault Warden before mining the Vault Core to win — before the clock or the vault gets you.
 
-- 5 zones, each with its own palette, shard goal and hazard mix
-- 3 enemy types: Chaser Drones, Falling Rocks, Lava Blobs — plus the Core Guardian barrage
-- Phase dash with invulnerability frames, 4-line Forge (pickaxe, dash, magnet, hull)
-- Server-authoritative state (ore, shards, lives, timer, win/loss) over two RemoteEvents; the client renders and reports
+- 6 vaults, each with its own neon palette, shard goal and hazard mix
+- 5 hazards: Chaser Drones, Falling Shards, Lava Blobs, Sentry Turrets — plus the Vault Warden boss with radial bullet bursts
+- Dash combat (a dash destroys what it touches; only a dash wounds the boss), combo multiplier, 4 power-ups (Shield, Overdrive, Time Cell, Star), 4-line Forge (pickaxe, dash, magnet, hull)
+- Server-authoritative state (ore, shards, lives, timer, combo, shield, power-up timers, boss HP, win/loss) over two RemoteEvents; the client renders and reports
 
 ## Run it
 
