@@ -1,7 +1,7 @@
--- LUMEN CORE: Deep Delve — zone progression, server side.
--- Owns the zone ladder: which zone is live, what its goal is, when the
--- portal opens, and when the Core Crystal replaces the portal. The game
--- server calls into here; it never touches zone numbers itself.
+-- NEON CORE: Vault Breaker — zone progression, server side.
+-- Owns the vault ladder: which vault is live, what its goal is, when the
+-- portal opens, and when the Vault Core and the Warden replace the portal.
+-- The game server calls into here; it never touches vault numbers itself.
 -- SPDX-License-Identifier: MIT
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,7 +31,7 @@ function ZoneServer.getShardGoal(zoneIndex)
 end
 
 -- True once the player has gathered enough shards to open the portal.
--- The final zone never opens a portal: it opens the Core Crystal.
+-- The final vault never opens a portal: it opens the Vault Core.
 function ZoneServer.isPortalOpen(zoneIndex, shardsInZone)
 	if ZoneServer.isFinalZone(zoneIndex) then
 		return false
@@ -39,7 +39,7 @@ function ZoneServer.isPortalOpen(zoneIndex, shardsInZone)
 	return shardsInZone >= ZoneServer.getShardGoal(zoneIndex)
 end
 
--- The next zone after this one, or nil past the end of the ladder.
+-- The next vault after this one, or nil past the end of the ladder.
 function ZoneServer.getNextZone(zoneIndex)
 	if zoneIndex >= #GameConfig.ZONES then
 		return nil
@@ -47,8 +47,8 @@ function ZoneServer.getNextZone(zoneIndex)
 	return zoneIndex + 1
 end
 
--- A crystal spawn batch for a zone: positions spread over the arena with a
--- margin from the edges, each with the zone's ore value and hit points.
+-- A crystal spawn batch for a vault: positions spread over the arena with a
+-- margin from the edges, each with the vault's ore value and hit points.
 -- Crystal ids are unique across the whole run so a mined crystal can never
 -- be claimed twice.
 function ZoneServer.generateCrystalBatch(zoneIndex, firstId, count)
@@ -71,7 +71,7 @@ function ZoneServer.generateCrystalBatch(zoneIndex, firstId, count)
 	return batch
 end
 
--- The Core Crystal: one big crystal in the middle of the Sanctum.
+-- The Vault Core: one big crystal in the middle of the Core Vault.
 function ZoneServer.generateCoreCrystal(nextId)
 	return {
 		id = nextId,
@@ -82,6 +82,18 @@ function ZoneServer.generateCoreCrystal(nextId)
 		maxHp = GameConfig.CORE_CRYSTAL_HP,
 		zone = #GameConfig.ZONES,
 		isCore = true,
+	}
+end
+
+-- The Vault Warden: the boss of the Core Vault. It spawns above the Vault
+-- Core so the player meets it on the way in, and its hit points live on
+-- the server; the client only draws it and reports dash hits.
+function ZoneServer.generateBoss()
+	return {
+		x = math.floor(GameConfig.ARENA_WIDTH / 2),
+		y = 90,
+		hp = GameConfig.BOSS_HP,
+		maxHp = GameConfig.BOSS_HP,
 	}
 end
 
